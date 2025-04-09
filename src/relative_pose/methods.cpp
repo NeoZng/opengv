@@ -538,12 +538,20 @@ rotation_t eigensolver(
   modules::eigensolver_main(xxF,yyF,zzF,xyF,yzF,zxF,output);
 
   //Correct the translation
-  bearingVector_t f1 = adapter.getBearingVector1(indices[0]);
-  bearingVector_t f2 = adapter.getBearingVector2(indices[0]);
-  f2 = output.rotation * f2;
-  Eigen::Vector3d opticalFlow = f1 - f2;
-  if( opticalFlow.dot(output.translation) < 0.0 )
+  bearingVector_t f1,f2;
+  int negative_count = 0;
+  for (size_t i = 0; i < indices.size(); ++i) {
+    bearingVector_t f1_i = adapter.getBearingVector1(indices[i]);
+    bearingVector_t f2_i = adapter.getBearingVector2(indices[i]);
+    f2_i = output.rotation * f2_i;
+    if ((f1_i - f2_i).dot(output.translation) < 0.0) {
+      ++negative_count;
+    }
+  }
+
+  if (negative_count > indices.size() / 2) {
     output.translation = -output.translation;
+  }
 
   return output.rotation;
 }
