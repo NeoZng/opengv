@@ -1107,7 +1107,7 @@ struct OptimizeNonlinearFunctor1 : OptimizationFunctor<double>
     assert( x.size() == 6 );
     assert( (unsigned int) fvec.size() == _indices.size());
 
-    //compute the current position
+    // Compute the current position
     translation_t translation = x.block<3,1>(0,0);
     cayley_t cayley = x.block<3,1>(3,0);
     rotation_t rotation = math::cayley2rot(cayley);
@@ -1145,12 +1145,19 @@ struct OptimizeNonlinearFunctor1 : OptimizationFunctor<double>
       bearingVector_t f1 = _adapter.getBearingVector1(_indices[i]);
       bearingVector_t f2 = _adapter.getBearingVector2(_indices[i]);
 
-      //bearing-vector based outlier criterium (select threshold accordingly):
-      //1-(f1'*f2) = 1-cos(alpha) \in [0:2]
+      // Compute reprojection errors
       double reprojError1 = 1.0 - (f1.transpose() * reprojection1);
       double reprojError2 = 1.0 - (f2.transpose() * reprojection2);
-      double factor = 1.0;
-      fvec[i] = factor*(reprojError1 + reprojError2);
+      double error = reprojError1 + reprojError2;
+
+      // Apply robust kernel (Truncated Least Squares)
+      double robustError = error;
+      const double tlsThreshold = 1.0; // Adjust threshold as needed
+      if (error > tlsThreshold) {
+        robustError = tlsThreshold; // Cap the error at the threshold
+      }
+
+      fvec[i] = robustError;
     }
 
     return 0;
